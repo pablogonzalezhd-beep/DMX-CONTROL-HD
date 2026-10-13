@@ -1,0 +1,32 @@
+name: Compilar APK
+on:
+  workflow_dispatch:
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Ordenar archivos
+        run: |
+          mkdir -p lib
+          if [ -f main.dart ]; then mv main.dart lib/main.dart; fi
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+      - uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+      - name: Generar plataforma Android
+        run: flutter create --platforms=android --project-name dmx_control_nuevo --org com.dmxnuevo .
+      - run: rm -rf test
+      - name: Permitir HTTP e INTERNET
+        run: |
+          sed -i 's#<application#<uses-permission android:name="android.permission.INTERNET"/>\n    <application android:usesCleartextTraffic="true"#' android/app/src/main/AndroidManifest.xml
+          sed -i 's#android:label="[^"]*"#android:label="DMX Control"#' android/app/src/main/AndroidManifest.xml
+      - run: flutter pub get
+      - run: flutter build apk --release
+      - uses: actions/upload-artifact@v4
+        with:
+          name: dmx-control-apk
+          path: build/app/outputs/flutter-apk/app-release.apk
